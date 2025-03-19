@@ -1,0 +1,12 @@
+{
+  "IpSourceUrls": [
+    "https://raw.githubusercontent.com/HybridNetworks/whatsapp-cidr/main/WhatsApp/whatsapp_cidr_ipv4.txt",
+    "https://raw.githubusercontent.com/touhidurrr/iplist-youtube/main/ipv4_list.txt"
+  ],
+  "Domains": [
+    "discord.com",
+    "discordapp.com",
+    "discord.gg",
+    "discordstatus.com"
+  ]
+}

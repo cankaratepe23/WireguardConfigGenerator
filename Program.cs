@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Text.Json;
 
 namespace WireguardConfigGenerator;
 
@@ -7,11 +8,9 @@ internal abstract class Program
 {
     private static async Task Main(string[] args)
     {
-        var ipSourceUrls = new List<string>
-        {
-            "https://raw.githubusercontent.com/HybridNetworks/whatsapp-cidr/main/WhatsApp/whatsapp_cidr_ipv4.txt",
-            "https://raw.githubusercontent.com/touhidurrr/iplist-youtube/main/ipv4_list.txt"
-        };
+        var configuration = Configuration.LoadConfiguration();
+        
+        var ipSourceUrls = configuration.IpSourceUrls;
 
         var ipList = new List<string>();
         using var client = new HttpClient();
@@ -26,13 +25,7 @@ internal abstract class Program
             }
         }));
 
-        var domainsList = new List<string>()
-        {
-            "discord.com",
-            "discordapp.com",
-            "discord.gg",
-            "discordstatus.com"
-        };
+        var domainsList = configuration.Domains;
 
         await Task.WhenAll(domainsList.Select(async domain =>
         {
