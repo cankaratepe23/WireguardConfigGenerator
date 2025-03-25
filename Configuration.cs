@@ -6,6 +6,7 @@ public class Configuration
 {
     public required List<string> IpSourceUrls { get; set; }
     public required List<string> Domains { get; set; }
+    public required List<string> CrtShSources { get; set; }
 
     public static Configuration GetDefaultConfiguration()
     {
@@ -22,6 +23,10 @@ public class Configuration
                 "discordapp.com",
                 "discord.gg",
                 "discordstatus.com"
+            ],
+            CrtShSources =
+            [
+                "https://crt.sh/json?q=discord.media&exclude=expired"
             ]
         };
     }

@@ -8,5 +8,8 @@
     "discordapp.com",
     "discord.gg",
     "discordstatus.com"
+  ],
+  "CrtShSources": [
+    "https://crt.sh/json?q=discord.media&exclude=expired"
   ]
 }
