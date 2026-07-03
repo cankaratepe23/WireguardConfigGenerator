@@ -49,10 +49,16 @@ services:
     environment:
       - WG_CONF_PATH=/config/wg_confs/wg0.conf
       - VPN_CONTAINER=discord-vpn
-      - WG_INTERFACE=wg0
-      - INTERVAL=21600            # regenerate every 6h
-      # - CONFIG_PATH=/config-generator/config.json  # to override the baked-in defaults
+      - WG_INTERFACE=wg0           # retained for compatibility; the reload uses WG_CONF_PATH
+      - INTERVAL=21600             # regenerate every 6h
+      # CONFIG_PATH selects the config file. IMPORTANT: without it, a config mounted below is
+      # IGNORED and the baked-in minimal Discord-only default (/app/config.json) is used.
+      - CONFIG_PATH=/config-generator/config.json
     volumes:
       - ./discord-vpn/config:/config
-      - /var/run/docker.sock:/var/run/docker.sock   # needed for live `wg syncconf`
-      # - ./discord-vpn/config-generator/config.json:/config-generator/config.json:ro
+      - /var/run/docker.sock:/var/run/docker.sock   # needed for the live wg-quick down/up reload
+      # To customize, copy an example from the repo to ./discord-vpn/config-generator/config.json:
+      #   config.example.robust.json  -> robust (tunnels Cloudflare's IPv4 range; most reliable)
+      #   config.json                 -> minimal (domain-resolved; same as the baked default)
+      # Omit this mount AND CONFIG_PATH above to just use the baked-in minimal default.
+      - ./discord-vpn/config-generator/config.json:/config-generator/config.json:ro

@@ -1,15 +1,15 @@
 {
-  "IpSourceUrls": [
-    "https://raw.githubusercontent.com/HybridNetworks/whatsapp-cidr/main/WhatsApp/whatsapp_cidr_ipv4.txt",
-    "https://raw.githubusercontent.com/touhidurrr/iplist-youtube/main/lists/ipv4.txt"
-  ],
+  "IpSourceUrls": [],
   "Domains": [
     "discord.com",
-    "discordapp.com",
-    "discord.gg",
-    "discordstatus.com"
+    "gateway.discord.gg",
+    "cdn.discordapp.com"
   ],
   "CrtShSources": [
-    "https://crt.sh/json?q=discord.media&exclude=expired"
-  ]
+    "https://crt.sh/?q=discord.media&output=json&exclude=expired"
+  ],
+  "AlwaysInclude": [
+    "10.66.66.1/32"
+  ],
+  "PadDnsResultsToSlash24": true
 }

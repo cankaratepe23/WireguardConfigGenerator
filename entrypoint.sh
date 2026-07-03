@@ -14,9 +14,15 @@ while true; do
   echo "[gen] $(date -u '+%Y-%m-%dT%H:%M:%SZ') regenerating ${WG_CONF_PATH}"
   if dotnet WireguardConfigGenerator.dll; then
     if [ "$RELOAD" = "true" ]; then
-      echo "[gen] applying via wg syncconf on ${VPN_CONTAINER}/${WG_INTERFACE}"
+      # wg-quick down/up (not wg syncconf): syncconf updates cryptokey routing but not the
+      # kernel routing table, so newly-resolved split-tunnel prefixes would get no route to
+      # wg0. down/up rebuilds both. Sub-second blip; never `docker restart` the container.
+      # Use the full conf path — linuxserver/wireguard brings tunnels up by path and has no
+      # /etc/wireguard/wg0.conf, so a bare `wg0` name would fail. `;` so up runs even if down
+      # reports the interface already down.
+      echo "[gen] reloading via wg-quick down/up on ${VPN_CONTAINER} (${WG_CONF_PATH})"
       docker exec "$VPN_CONTAINER" sh -c \
-        "wg-quick strip ${WG_CONF_PATH} > /tmp/wg.stripped && wg syncconf ${WG_INTERFACE} /tmp/wg.stripped && rm -f /tmp/wg.stripped" \
+        "wg-quick down ${WG_CONF_PATH}; wg-quick up ${WG_CONF_PATH}" \
         || echo "[gen] reload failed (is ${VPN_CONTAINER} up and the docker socket mounted?)"
     fi
   else

@@ -21,7 +21,7 @@ internal static class Program
         var ipSourceParseTasks = ipSourceUrls.Select(ParseIpSourceUrlAsync);
 
         var domainsList = configuration.Domains;
-        var domainParseTasks = domainsList.Select(ResolveDnsAsync);
+        var domainParseTasks = domainsList.Select(d => ResolveDnsAsync(d, configuration.PadDnsResultsToSlash24));
 
         var crtShResults = new HashSet<string>();
         var crtShSources = configuration.CrtShSources;
@@ -50,7 +50,14 @@ internal static class Program
                                        !commonName.StartsWith("atlanta") &&
                                        !commonName.StartsWith("south-korea") &&
                                        !commonName.StartsWith("singapore")
-                ).Cast<string>();
+                ).Cast<string>().ToList();
+
+                if (commonNames.Count == 0)
+                {
+                    Log.Warning(
+                        "crt.sh source {CrtShSource} returned no usable names — voice coverage may be incomplete",
+                        crtShSource);
+                }
 
                 lock (crtShResults)
                 {
@@ -71,7 +78,7 @@ internal static class Program
             }
         }));
 
-        var crtShTasks = crtShResults.Select(ResolveDnsAsync);
+        var crtShTasks = crtShResults.Select(name => ResolveDnsAsync(name, configuration.PadDnsResultsToSlash24));
 
         var allTasks = new List<Task>();
         allTasks.AddRange(ipSourceParseTasks);
@@ -92,6 +99,7 @@ internal static class Program
         var ipListString = "";
         lock (IpList)
         {
+            IpList.UnionWith(configuration.AlwaysInclude);
             Log.Information("Generating list of {IpCount} IP addresses...", IpList.Count);
             ipListString = string.Join(',', IpList);
         }
@@ -138,16 +146,17 @@ internal static class Program
         }
     }
 
-    private static async Task ResolveDnsAsync(string domain)
+    private static async Task ResolveDnsAsync(string domain, bool padToSlash24)
     {
         try
         {
             var hostEntry = await Dns.GetHostAddressesAsync(domain);
+            var resolved = hostEntry
+                .Where(a => a.AddressFamily == AddressFamily.InterNetwork)
+                .Select(a => padToSlash24 ? ToSlash24(a) : a.ToString());
             lock (IpList)
             {
-                IpList.UnionWith(hostEntry
-                    .Where(a => a.AddressFamily == AddressFamily.InterNetwork)
-                    .Select(a => a.ToString()));
+                IpList.UnionWith(resolved);
             }
         }
         catch (SocketException se)
@@ -160,5 +169,13 @@ internal static class Program
             Log.Error(e, e.Message);
             throw;
         }
+    }
+
+    // Widen an IPv4 address to its containing /24 (zero the final octet).
+    private static string ToSlash24(IPAddress address)
+    {
+        var bytes = address.GetAddressBytes();
+        bytes[3] = 0;
+        return $"{new IPAddress(bytes)}/24";
     }
 }
