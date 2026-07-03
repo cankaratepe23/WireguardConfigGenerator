@@ -1,0 +1,58 @@
+# Example homelab wiring: two Discord bots behind a WireGuard sidecar, with this
+# generator keeping the split-tunnel AllowedIPs fresh and applying them live.
+#
+# The base wg0.conf (with your PrivateKey/PresharedKey) must exist BEFORE first
+# start at: ./discord-vpn/config/wg_confs/wg0.conf
+services:
+  redbot:
+    image: phasecorex/red-discordbot
+    container_name: redbot
+    restart: unless-stopped
+    volumes:
+      - ./redbot:/data
+    depends_on:
+      discord-vpn:
+        condition: service_healthy
+    network_mode: service:discord-vpn
+
+  discord-vpn:
+    image: linuxserver/wireguard
+    container_name: discord-vpn
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Istanbul
+    volumes:
+      # linuxserver/wireguard reads client confs from /config/wg_confs/*.conf
+      - ./discord-vpn/config:/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ping", "-c1", "10.66.66.1"]  # the OVH tunnel IP
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  discord-vpn-config-generator:
+    # Pull the published image...
+    image: ghcr.io/cankaratepe23/wireguardconfiggenerator:latest
+    # ...or build it locally instead:
+    # build: https://github.com/cankaratepe23/WireguardConfigGenerator.git
+    container_name: discord-vpn-config-generator
+    restart: unless-stopped
+    depends_on:
+      discord-vpn:
+        condition: service_healthy
+    environment:
+      - WG_CONF_PATH=/config/wg_confs/wg0.conf
+      - VPN_CONTAINER=discord-vpn
+      - WG_INTERFACE=wg0
+      - INTERVAL=21600            # regenerate every 6h
+      # - CONFIG_PATH=/config-generator/config.json  # to override the baked-in defaults
+    volumes:
+      - ./discord-vpn/config:/config
+      - /var/run/docker.sock:/var/run/docker.sock   # needed for live `wg syncconf`
+      # - ./discord-vpn/config-generator/config.json:/config-generator/config.json:ro

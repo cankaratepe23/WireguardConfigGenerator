@@ -1,0 +1,11 @@
+bin/
+obj/
+.git/
+.github/
+.idea/
+_ReSharper.Caches/
+*.user
+*.conf
+*.log
+docker-compose*.yml
+README.md

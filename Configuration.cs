@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Serilog;
 
 namespace WireguardConfigGenerator;
 
@@ -15,7 +16,7 @@ public class Configuration
             IpSourceUrls =
             [
                 "https://raw.githubusercontent.com/HybridNetworks/whatsapp-cidr/main/WhatsApp/whatsapp_cidr_ipv4.txt",
-                "https://raw.githubusercontent.com/touhidurrr/iplist-youtube/main/ipv4_list.txt"
+                "https://raw.githubusercontent.com/touhidurrr/iplist-youtube/main/lists/ipv4.txt"
             ],
             Domains =
             [
@@ -33,10 +34,12 @@ public class Configuration
 
     public static Configuration LoadConfiguration()
     {
-        const string configPath = @"config.json";
+        var configPath = Environment.GetEnvironmentVariable("CONFIG_PATH")
+                         ?? Path.Combine(AppContext.BaseDirectory, "config.json");
 
         if (!File.Exists(configPath))
         {
+            Log.Information("Configuration file {configPath} not found", Path.GetFullPath(configPath));
             return GetDefaultConfiguration();
         }
 

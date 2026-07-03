@@ -3,3 +3,7 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+*.user
+
+# WireGuard confs contain private/preshared keys — never commit them.
+*.conf
