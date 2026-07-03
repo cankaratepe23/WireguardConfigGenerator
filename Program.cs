@@ -128,10 +128,39 @@ internal static class Program
         try
         {
             var content = await Client.GetStringAsync(url);
-            var lines = content.Split("\n").Where(l => !string.IsNullOrWhiteSpace(l) && !l.StartsWith('#'));
+            var validEntries = new List<string>();
+            var skipped = 0;
+            foreach (var rawLine in content.Split('\n'))
+            {
+                var line = rawLine.Trim(); // also drops the trailing \r on CRLF sources
+                if (line.Length == 0 || line.StartsWith('#'))
+                {
+                    continue;
+                }
+
+                if (IsValidIpOrCidr(line))
+                {
+                    validEntries.Add(line);
+                }
+                else
+                {
+                    skipped++;
+                }
+            }
+
+            if (skipped > 0)
+            {
+                // A source that returns HTTP 200 with junk (an HTML error page, a captive
+                // portal) would otherwise inject non-CIDR lines that make wg-quick reject the
+                // whole conf. Drop them, but make the noise visible.
+                Log.Warning(
+                    "IP source {IpSourceUrl}: skipped {Skipped} line(s) that are not a valid IP or CIDR (error page or captive portal?)",
+                    url, skipped);
+            }
+
             lock (IpList)
             {
-                IpList.UnionWith(lines);
+                IpList.UnionWith(validEntries);
             }
         }
         catch (HttpRequestException httpRequestException)
@@ -144,6 +173,26 @@ internal static class Program
             Log.Error(e, e.Message);
             throw;
         }
+    }
+
+    // True for a bare IP ("1.2.3.4") or CIDR ("1.2.3.0/24"), IPv4 or IPv6. Lenient about
+    // host bits (like WireGuard itself), strict enough to reject non-address junk.
+    private static bool IsValidIpOrCidr(string entry)
+    {
+        var slash = entry.IndexOf('/');
+        if (slash < 0)
+        {
+            return IPAddress.TryParse(entry, out _);
+        }
+
+        if (!IPAddress.TryParse(entry[..slash], out var address) ||
+            !int.TryParse(entry[(slash + 1)..], out var prefix))
+        {
+            return false;
+        }
+
+        var maxPrefix = address.AddressFamily == AddressFamily.InterNetworkV6 ? 128 : 32;
+        return prefix >= 0 && prefix <= maxPrefix;
     }
 
     private static async Task ResolveDnsAsync(string domain, bool padToSlash24)

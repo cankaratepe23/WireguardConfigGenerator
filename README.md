@@ -76,7 +76,10 @@ the generator can `docker exec` into the WireGuard container.
 > **Heads-up on `CONFIG_PATH`:** mounting a `config.json` into the generator does
 > nothing on its own — without `CONFIG_PATH` pointing at the mount, the app reads
 > the baked-in `/app/config.json` (the minimal default). Set both together (see
-> the compose example) to switch to the robust config.
+> the compose example) to switch to the robust config. Also ensure the host file
+> exists **before the first `docker compose up`**: if the bind-mount source is
+> missing, Docker creates a directory at that path and the app falls back to the
+> baked-in default — it now logs a warning when `CONFIG_PATH` points at a missing file.
 
 See [docker-compose.example.yml](docker-compose.example.yml) for a full stack.
 

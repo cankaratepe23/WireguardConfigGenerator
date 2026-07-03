@@ -60,5 +60,8 @@ services:
       # To customize, copy an example from the repo to ./discord-vpn/config-generator/config.json:
       #   config.example.robust.json  -> robust (tunnels Cloudflare's IPv4 range; most reliable)
       #   config.json                 -> minimal (domain-resolved; same as the baked default)
+      # This host file MUST exist before the first `docker compose up`: if it is missing,
+      # Docker creates a *directory* at that path and the generator silently falls back to
+      # the baked-in minimal default (it logs a warning when this happens).
       # Omit this mount AND CONFIG_PATH above to just use the baked-in minimal default.
       - ./discord-vpn/config-generator/config.json:/config-generator/config.json:ro

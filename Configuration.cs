@@ -53,13 +53,26 @@ public class Configuration
 
     public static Configuration LoadConfiguration()
     {
-        var configPath = Environment.GetEnvironmentVariable("CONFIG_PATH")
-                         ?? Path.Combine(AppContext.BaseDirectory, "config.json");
+        var envConfigPath = Environment.GetEnvironmentVariable("CONFIG_PATH");
+        var configPath = envConfigPath ?? Path.Combine(AppContext.BaseDirectory, "config.json");
 
         if (!File.Exists(configPath))
         {
-            Log.Information("Configuration file {ConfigPath} not found, using baked-in defaults",
-                Path.GetFullPath(configPath));
+            if (!string.IsNullOrEmpty(envConfigPath))
+            {
+                // CONFIG_PATH was set explicitly but points at no file. A common Compose
+                // cause: the bind-mount source didn't exist at first `up`, so Docker created
+                // a directory there. Make the otherwise-silent fallback loud.
+                Log.Warning(
+                    "CONFIG_PATH is set to {ConfigPath} but no file exists there (a missing bind-mount source makes Docker create a directory) — falling back to baked-in defaults",
+                    Path.GetFullPath(configPath));
+            }
+            else
+            {
+                Log.Information("Configuration file {ConfigPath} not found, using baked-in defaults",
+                    Path.GetFullPath(configPath));
+            }
+
             return GetDefaultConfiguration();
         }
 
